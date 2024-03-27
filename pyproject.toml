@@ -8,6 +8,7 @@ readme = "README.md"
 packages = [
     { include = "combinedBooks" },
     { include = "combinedBooks/**/*.py" },
+    { include = "combinedBooks/py.typed" }
 ]
 
 [tool.poetry.dependencies]

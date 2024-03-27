@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "combined-orderbooks"
+version = "0.1.0"
+description = "Tools for combined order books research in crypto space."
+authors = ["Chris Liatas <chris@liatas.com>"]
+license = "GNU General Public License (GPL) v3. 0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+aiohttp = "^3.9.3"
+requests = "^2.31.0"
+pandas = "^2.2.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

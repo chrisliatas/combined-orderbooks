@@ -14,9 +14,9 @@ Tools for combined order books research in crypto space. Excahnge data constants
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""
 
-"""Constants for exchanges data.
+
+Constants for exchanges data.
 
 Fee tiers reference:
 https://www.binance.com/en/fee/trading

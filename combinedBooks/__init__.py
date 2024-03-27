@@ -12,7 +12,7 @@ from .orderbook import (
     WapLevelsEntry,
 )
 from .printColors import Pcolors
-from .utils import DATA_DIR, nowUTCts, saveEveryNth
+from .utils import nowUTCts, saveEveryNth
 
 __all__ = [
     "booksGetter",

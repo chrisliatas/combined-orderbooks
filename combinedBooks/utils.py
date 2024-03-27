@@ -20,16 +20,16 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-DATA_DIR = Path(__file__).parent.parent / "data"
-DATA_DIR.mkdir(parents=True, exist_ok=True)
-
 
 def nowUTCts() -> float:
     return round(datetime.now(tz=timezone.utc).timestamp(), 3)
 
 
-def saveEveryNth(results: list, filename: str, nRes: int) -> bool:
-    filepath = DATA_DIR / filename
+def saveEveryNth(results: list, data_dir: str, filename: str, nRes: int) -> bool:
+    _data_dir = Path(data_dir)
+    if not _data_dir.exists():
+        _data_dir.mkdir(parents=True)
+    filepath = _data_dir / filename
     saved = False
     if (n_res := len(results)) >= nRes:
         if filepath.exists():

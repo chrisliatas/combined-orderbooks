@@ -17,11 +17,10 @@ Tools for combined order books research in crypto space. Coinbase products data.
 """
 
 import logging
+from pathlib import Path
 
 import pandas as pd
 import requests
-
-from combinedBooks.utils import DATA_DIR
 
 lgr = logging.getLogger(__name__)
 
@@ -29,16 +28,18 @@ COINBASE_PRODUCTS = "https://api.exchange.coinbase.com/products"
 
 
 class CbProducts:
-    def __init__(self) -> None:
+    def __init__(self, data_dir: str) -> None:
+        self.data_dir = Path(data_dir)
+        self.data_dir.mkdir(parents=True, exist_ok=True)
         self.url = COINBASE_PRODUCTS
         self.products = self.get_products()
         self.products_df = self.get_products_df()
-        self.products_df.to_csv(DATA_DIR / "coinbaseProducts.csv", index=False)
+        self.products_df.to_csv(self.data_dir / "coinbaseProducts.csv", index=False)
 
     def setSavePairs(self) -> None:
         """Extract all unique and active (trading_disabled=False) pairs `id`."""
         _df = self.products_df.loc[~self.products_df.trading_disabled]
-        _df.id.to_json(DATA_DIR / "coinbasePairs.json", orient="records")
+        _df.id.to_json(self.data_dir / "coinbasePairs.json", orient="records")
         self._pairs = _df.id.to_list()
 
     @property
@@ -56,7 +57,7 @@ class CbProducts:
         _df = self.products_df.loc[
             ~self.products_df.trading_disabled & self.products_df.fx_stablecoin
         ]
-        _df.id.to_json(DATA_DIR / "coinbaseStablePairs.json", orient="records")
+        _df.id.to_json(self.data_dir / "coinbaseStablePairs.json", orient="records")
         self._stable_pairs = _df.id.to_list()
 
     @property

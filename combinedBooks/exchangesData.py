@@ -52,7 +52,10 @@ class ExchangesConstants:
     OKX_BOOKS = "https://www.okx.com/api/v5/market/books?instId={}&sz={}"
 
     def __init__(
-        self, use_exchs: list[str] | None = None, base_pairs: list[str] | None = None
+        self,
+        data_dir: str,
+        use_exchs: list[str] | None = None,
+        base_pairs: list[str] | None = None,
     ) -> None:
         self.use_exchs = use_exchs
         if self.use_exchs:
@@ -66,7 +69,7 @@ class ExchangesConstants:
         if self.base_pairs:
             self.BASE_PAIRS = self.base_pairs
         if "coinbase" in self.EXCHANGES:
-            self.cbProds = CbProducts()
+            self.cbProds = CbProducts(data_dir)
             self.COINBASE_PAIRS = list(map(self.cbProds.get_CB_pair, self.BASE_PAIRS))
         if "binance" in self.EXCHANGES:
             self.BINANCE_PAIRS = [i.replace("-", "") for i in self.BASE_PAIRS]

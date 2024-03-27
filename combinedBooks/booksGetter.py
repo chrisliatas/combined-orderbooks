@@ -45,6 +45,7 @@ class ExchangesAsyncBooksGetter:
 
     def __init__(
         self,
+        data_dir: str,
         depth: int = 50,
         use_exchs: list[str] | None = None,
         base_pairs: list[str] | None = None,
@@ -52,7 +53,7 @@ class ExchangesAsyncBooksGetter:
         self.depth = depth
         self.use_exchs = use_exchs
         self.base_pairs = base_pairs
-        self.xc = ExchangesConstants(self.use_exchs, self.base_pairs)
+        self.xc = ExchangesConstants(data_dir, self.use_exchs, self.base_pairs)
         self.exchs = self.xc.EXCH_DATA
         self.responses: dict[str, list[dict[str, dict]]] = {i: [] for i in self.exchs}
 
@@ -210,13 +211,3 @@ class ExchangesAsyncBooksGetter:
         for exch in self.responses:
             obs[exch] = getattr(self, f"parse_{exch}_obs")()
         return obs
-
-
-async def main() -> None:
-    getter = ExchangesAsyncBooksGetter()
-    obs = await getter.get_all_books()
-    print(obs)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())

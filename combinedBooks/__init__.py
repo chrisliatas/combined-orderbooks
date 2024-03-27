@@ -17,6 +17,7 @@ from .utils import DATA_DIR, nowUTCts, saveEveryNth
 __all__ = [
     "booksGetter",
     "coinbaseUtils",
+    "comboBooks",
     "exchangesData",
     "orderbook",
     "printColors",

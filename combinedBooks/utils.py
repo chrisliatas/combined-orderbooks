@@ -50,3 +50,16 @@ def saveEveryNth(results: list, data_dir: str, filename: str, nRes: int) -> bool
             print(f"Saved {n_res} results")
             saved = True
     return saved
+
+
+def round_digits(precision_a: int, precision_b: int, num: float) -> int:
+    """Return suggested number of decimal places to round a number to based on the
+    precision of the inputs and the result"""
+    init_precision = max(precision_a, precision_b)
+    if 1 > num > 1e-2:
+        precision = 5
+    elif num <= 1e-2:
+        precision = 8
+    else:
+        precision = 2
+    return max(precision, init_precision)

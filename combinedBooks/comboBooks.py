@@ -21,8 +21,7 @@ from dataclasses import dataclass
 from itertools import chain, combinations
 
 from combinedBooks.orderbook import DebugOrderBookEntry, OrderBookEntry, OrderBookItem
-from combinedBooks.printColors import Pcolors as ppc
-from combinedBooks.utils import nowUTCts
+from combinedBooks.utils import round_digits
 
 lgr = logging.getLogger(__name__)
 
@@ -343,10 +342,14 @@ def convert_side_quote(
         levels = ob2.wap_quote_levels(i.price * i.size, side=side2)
         for lvl in levels:
             prc = i.price / lvl.wap
-            size = round(lvl.size / prc, max(ob1.lenSizeDecimals, ob2.lenSizeDecimals))
+            size = lvl.size / prc
+            size = round(
+                size, round_digits(ob1.lenSizeDecimals, ob2.lenSizeDecimals, size)
+            )
             fees = ob1.xc.comboFees([(i.exch, ob1.pair), (lvl.exch, ob2.pair)])
+            prcWfees = prc * (1 + fees)
             prcWfees = round(
-                prc * (1 + fees), max(ob1.lenPrcDecimals, ob2.lenPrcDecimals)
+                prcWfees, round_digits(ob1.lenPrcDecimals, ob2.lenPrcDecimals, prcWfees)
             )
             _debug: list[DebugOrderBookEntry] = []
             if debug:
@@ -388,10 +391,14 @@ def convert_side_base(
         levels = ob2.wap_base_levels(i.price * i.size, side=side2)
         for lvl in levels:
             prc = i.price * lvl.wap
-            size = round(lvl.size, max(ob1.lenSizeDecimals, ob2.lenSizeDecimals))
+            size = round(
+                lvl.size,
+                round_digits(ob1.lenSizeDecimals, ob2.lenSizeDecimals, lvl.size),
+            )
             fees = ob1.xc.comboFees([(i.exch, ob1.pair), (lvl.exch, ob2.pair)])
+            prcWfees = prc * (1 + fees)
             prcWfees = round(
-                prc * (1 + fees), max(ob1.lenPrcDecimals, ob2.lenPrcDecimals)
+                prcWfees, round_digits(ob1.lenPrcDecimals, ob2.lenPrcDecimals, prcWfees)
             )
             _debug: list[DebugOrderBookEntry] = []
             if debug:
@@ -574,50 +581,6 @@ def combo_book(
         print(f"combo_book - Synthesizing pair: {pair}")
         books = combo_by_conversion(pair, exch, obs, known_pairs, debug, aggLevels)
     return books
-
-
-def compareComboBooks(
-    pair: str,
-    eth_amts: list[int],
-    isAmtsQuote: bool,
-    obs: dict[str, list[OrderBookItem]],
-    joinedPs: dict[str, tuple[str, str]] | None = None,
-    debug: bool = False,
-    aggLevels=False,
-) -> list[dict]:
-    """Compare combined order-books for fixed ETH amounts.
-    Args:
-        pair: The pair to return the order-book for.
-        eth_amts: The ETH amounts to compare.
-        isAmtsQuote: Whether the amounts are in quote or base currency.
-        obs: The common order-book dictionary for all exchanges.
-        joinedPs: The pairs that have been joined."""
-    res = []
-    ts = nowUTCts()  # create common timestamp for all obs in iteration
-    for ex in obs:
-        print(f"compareComboBooks - Results for: {ppc.CBOLD}{ex}{ppc.CEND}, {pair}")
-        if combo := combo_book(pair, ex, obs, joinedPs, debug, aggLevels):
-            for cmb in combo:
-                for amt in eth_amts:
-                    for side in ["asks", "bids"]:
-                        price = (
-                            cmb.wap_quote(amt, side)
-                            if isAmtsQuote
-                            else cmb.wap_base(amt, side)
-                        )
-                        market = getattr(cmb, side)[0].price
-                        res.append(
-                            {
-                                "exch": ex,
-                                "pair": pair,
-                                "amt": amt,
-                                "side": side,
-                                "price": round(price, 2),
-                                "market": market,
-                                "ts": ts,
-                            }
-                        )
-    return res
 
 
 def pairs_sanity_check(

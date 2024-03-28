@@ -24,7 +24,7 @@ from typing import Self
 
 from combinedBooks.exchangesData import ExchangesConstants
 from combinedBooks.printColors import Pcolors as ppc
-from combinedBooks.utils import nowUTCts
+from combinedBooks.utils import nowUTCts, round_digits
 
 
 @dataclass
@@ -412,6 +412,12 @@ class OrderBookItem:
                 res.append(OrderBookEntry(i.price, i.size, i.exch, i.debug))
             else:
                 res[-1].size += i.size
+                res[-1].size = round(
+                    res[-1].size,
+                    round_digits(
+                        self.lenSizeDecimals, self.lenSizeDecimals, res[-1].size
+                    ),
+                )
                 if debug:
                     res[-1].debug.extend(i.debug)
         return res

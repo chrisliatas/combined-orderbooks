@@ -72,7 +72,7 @@ class ExchangesAsyncBooksGetter:
             async with session.get(url) as response:
                 resp = await response.json()
         except Exception as ex:
-            print(f"{self.cls_name}.get_single_pair - Exception: {ex}")
+            lgr.error(f"{self.cls_name}.get_single_pair - Exception: {ex}")
             resp = {}
         res = {"pair": pair, "data": resp}
         self.responses[exch].append(res)
@@ -92,7 +92,7 @@ class ExchangesAsyncBooksGetter:
                     tasks.append(task)
 
             await asyncio.gather(*tasks)
-            print(
+            lgr.info(
                 f"{self.cls_name} - Download books took: "
                 f"{timedelta(seconds=timer() - _timer_start)}"
             )
@@ -131,7 +131,7 @@ class ExchangesAsyncBooksGetter:
                     )
             converted.append(OrderBookItem(**obk))  # type: ignore
         if skipped:
-            lgr.warning(f"Skipped {skipped} pairs.")
+            lgr.warning(f"{self.cls_name}.parse_binance_obs - Skipped {skipped} pairs.")
         return converted
 
     def parse_okx_obs(self) -> list[OrderBookItem]:
@@ -164,7 +164,7 @@ class ExchangesAsyncBooksGetter:
                         obk[side].append(OrderBookEntry(p, s, exch, []))  # type: ignore
             converted.append(OrderBookItem(**obk))  # type: ignore
         if skipped:
-            lgr.warning(f"Skipped {skipped} pairs.")
+            lgr.warning(f"{self.cls_name}.parse_okx_obs - Skipped {skipped} pairs.")
         return converted
 
     def parse_coinbase_obs(self) -> list[OrderBookItem]:
@@ -197,7 +197,9 @@ class ExchangesAsyncBooksGetter:
                     obk[side].append(OrderBookEntry(p, s, exch, []))  # type: ignore
             converted.append(OrderBookItem(**obk))  # type: ignore
             if skipped:
-                lgr.warning(f"Skipped {skipped} pairs.")
+                lgr.warning(
+                    f"{self.cls_name}.parse_coinbase_obs - Skipped {skipped} pairs."
+                )
         return converted
 
     async def get_all_books(self) -> dict[str, list[OrderBookItem]]:

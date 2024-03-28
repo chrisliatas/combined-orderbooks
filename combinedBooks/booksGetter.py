@@ -103,13 +103,19 @@ class ExchangesAsyncBooksGetter:
         if not hasattr(self, "responses"):
             raise Exception("No responses to parse.")
         converted = []
+        skipped = []
         exch = "binance"
         for ob in self.responses[exch]:
             sym = cast(str, ob.get("pair", ""))
             data = ob.get("data")
-            ts = nowUTCts() - 0.5  # assume 500ms delay
-            if not data:
+            if (
+                (not data)
+                or (data.get("bids") in [None, []])
+                or (data.get("asks") in [None, []])
+            ):
+                skipped.append(sym)
                 continue
+            ts = nowUTCts() - 0.5  # assume 500ms delay
             obk = {
                 "exchange": exch,
                 "pair": self.xc.get_base_pair(exch, sym),
@@ -120,16 +126,12 @@ class ExchangesAsyncBooksGetter:
             }
             for side in ["bids", "asks"]:
                 for lvl in data[side]:
-                    try:
-                        obk[side].append(  # type: ignore
-                            OrderBookEntry(*map(float, lvl), exch, [])  # type: ignore
-                        )
-                    except KeyError:
-                        print(
-                            f"{self.cls_name}.parse_binance_obs - KeyError: "
-                            f"{sym}, {lvl}, {side}"
-                        )
+                    obk[side].append(  # type: ignore
+                        OrderBookEntry(*map(float, lvl), exch, [])  # type: ignore
+                    )
             converted.append(OrderBookItem(**obk))  # type: ignore
+        if skipped:
+            lgr.warning(f"Skipped {skipped} pairs.")
         return converted
 
     def parse_okx_obs(self) -> list[OrderBookItem]:
@@ -138,11 +140,13 @@ class ExchangesAsyncBooksGetter:
         if not hasattr(self, "responses"):
             raise Exception("No responses to parse.")
         converted = []
+        skipped = []
         exch = "okx"
         for ob in self.responses[exch]:
             sym = cast(str, ob.get("pair", ""))
             data = ob.get("data", {}).get("data")
             if not data:
+                skipped.append(sym)
                 continue
             for book in data:
                 ts = int(book["ts"]) / 1000
@@ -156,17 +160,11 @@ class ExchangesAsyncBooksGetter:
                 }
                 for side in ["bids", "asks"]:
                     for lvl in book[side]:
-                        try:
-                            p, s = map(float, lvl[:2])
-                            obk[side].append(  # type: ignore
-                                OrderBookEntry(p, s, exch, [])
-                            )
-                        except KeyError:
-                            print(
-                                f"{self.cls_name}.parse_okx_obs - KeyError: "
-                                f"{sym}, {lvl}, {side}"
-                            )
+                        p, s = map(float, lvl[:2])
+                        obk[side].append(OrderBookEntry(p, s, exch, []))  # type: ignore
             converted.append(OrderBookItem(**obk))  # type: ignore
+        if skipped:
+            lgr.warning(f"Skipped {skipped} pairs.")
         return converted
 
     def parse_coinbase_obs(self) -> list[OrderBookItem]:
@@ -176,11 +174,13 @@ class ExchangesAsyncBooksGetter:
         if not hasattr(self, "responses"):
             raise Exception("No responses to parse.")
         converted = []
+        skipped = []
         exch = "coinbase"
         for ob in self.responses[exch]:
             sym = cast(str, ob.get("pair"))
             data = ob.get("data")
             if (not data) or ("message" in data) or (data["auction_mode"]):
+                skipped.append(sym)
                 continue
             ts = round(datetime.fromisoformat(data["time"]).timestamp(), 3)
             obk = {
@@ -193,15 +193,11 @@ class ExchangesAsyncBooksGetter:
             }
             for side in ["bids", "asks"]:
                 for lvl in data[side][: self.depth]:
-                    try:
-                        p, s = map(float, lvl[:2])
-                        obk[side].append(OrderBookEntry(p, s, exch, []))  # type: ignore
-                    except KeyError:
-                        print(
-                            f"{self.cls_name}.parse_coinbase_obs - KeyError: "
-                            f"{sym}, {lvl}, {side}"
-                        )
+                    p, s = map(float, lvl[:2])
+                    obk[side].append(OrderBookEntry(p, s, exch, []))  # type: ignore
             converted.append(OrderBookItem(**obk))  # type: ignore
+            if skipped:
+                lgr.warning(f"Skipped {skipped} pairs.")
         return converted
 
     async def get_all_books(self) -> dict[str, list[OrderBookItem]]:

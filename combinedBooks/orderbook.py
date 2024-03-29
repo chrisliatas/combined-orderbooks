@@ -67,23 +67,28 @@ class OrderBookEntry(BaseOrderBookEntry):
     debug: list[DebugOrderBookEntry]
 
     def _newDebugEntry(
-        self, pair: str, side: str, xc: ExchangesConstants
+        self, pair: str, side: str, xc: ExchangesConstants, inverse: bool = False
     ) -> DebugOrderBookEntry:
         return DebugOrderBookEntry(
             self.price,
             self.size,
             self.exch,
-            xc.exchFees(self.exch, pair),
+            xc.exchFees(self.exch, pair, inverse),
             pair,
             "BUY" if side == "asks" else "SELL",
         )
 
     def addDebug(
-        self, pair: str, side: str, xc: ExchangesConstants, erases=False
+        self,
+        pair: str,
+        side: str,
+        xc: ExchangesConstants,
+        inverse: bool = False,
+        erases=False,
     ) -> None:
         """Add simple debug info. Overwrites previous debug info if `erases` set to
         True."""
-        _debug = [self._newDebugEntry(pair, side, xc)]
+        _debug = [self._newDebugEntry(pair, side, xc, inverse)]
         if erases:
             self.debug = _debug
         else:
@@ -101,7 +106,7 @@ class OrderBookEntry(BaseOrderBookEntry):
         """Get inverse of order-book entry. e.g. to get USDT-ETH from ETH-USDT.
         `debug` set to True will add debug info, overwriting the current debug info."""
         if debug and pair and side and xc:
-            _debug = [self._newDebugEntry(pair, side, xc)]
+            _debug = [self._newDebugEntry(pair, side, xc, True)]
         else:
             _debug = self.debug
         price = round(1 / self.price, deciP)
@@ -239,12 +244,14 @@ class OrderBookItem:
         for i in self.asks:
             i.price = round(i.price, dec)
 
-    def sideAfterFees(self, side: str, add_fee: float = 0.0) -> OBEntryList:
+    def sideAfterFees(
+        self, side: str, add_fee: float = 0.0, inverse: bool = False
+    ) -> OBEntryList:
         """Return side after fees. We calculate fees as TAKER sees them."""
         entries = []
         _sign = -1 if side == "bids" else 1
         for i in getattr(self, side):
-            new_fee = self.xc.exchFees(i.exch, self.pair) + add_fee
+            new_fee = self.xc.exchFees(i.exch, self.pair, inverse) + add_fee
             prc = round(i.price * (1 + _sign * new_fee), self.lenPrcDecimals)
             _debug = i.debug
             if add_fee:
@@ -262,11 +269,11 @@ class OrderBookItem:
             entries.append(OrderBookEntry(prc, i.size, i.exch, _debug))
         return entries
 
-    def bidsAfterFees(self, add_fee: float = 0.0) -> OBEntryList:
-        return self.sideAfterFees("bids", add_fee)
+    def bidsAfterFees(self, add_fee: float = 0.0, inverse: bool = False) -> OBEntryList:
+        return self.sideAfterFees("bids", add_fee, inverse)
 
-    def asksAfterFees(self, add_fee: float = 0.0) -> OBEntryList:
-        return self.sideAfterFees("asks", add_fee)
+    def asksAfterFees(self, add_fee: float = 0.0, inverse: bool = False) -> OBEntryList:
+        return self.sideAfterFees("asks", add_fee, inverse)
 
     def wap_base(self, base_qty: float, side="asks", incl_fees=False) -> float:
         """Return weighted average price for given base quantity."""

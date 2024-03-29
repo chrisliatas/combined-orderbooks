@@ -102,27 +102,29 @@ class ExchangesConstants:
             list(self.EXCH_DATA[exch]["pairs_key"].values()).index(pair)
         ]
 
-    def exchFees(self, exch: str, pair: str = "") -> float:
+    def exchFees(self, exch: str, pair: str = "", inverse: bool = False) -> float:
         """Return exchange fees. Account for `_joined` exchanges.
         Coinbase Pro fees are split between `spot` and `stables`, so we need to
         account for that as well, using `pair` to determine which fee to return."""
-        _exch = exch
+        if inverse:
+            pair = "-".join(pair.split("-")[::-1])
         if "_joined" in exch:
-            _exch = exch.split("_")[0]
-        if _exch == "coinbase":
+            exch = exch.split("_")[0]
+        print(f"exch: {exch}, pair: {pair}, is inverse: {inverse}")
+        if exch == "coinbase":
             if pair:
                 # check if pair in Coinbase `stables`.
-                if self.get_exch_pair(_exch, pair) in self.cbProds.stable_pairs:
-                    return self.EXCH_DATA[_exch]["fees"]["stables"]
-            return self.EXCH_DATA[_exch]["fees"]["spot"]
-        if _exch == "binance":
+                if self.get_exch_pair(exch, pair) in self.cbProds.stable_pairs:
+                    return self.EXCH_DATA[exch]["fees"]["stables"]
+            return self.EXCH_DATA[exch]["fees"]["spot"]
+        if exch == "binance":
             if pair:
                 # check if pair in Binance `stables`.
-                if self.get_exch_pair(_exch, pair) in self.BINANCE_STABLES:
-                    return self.EXCH_DATA[_exch]["fees"]["stables"]
-            return self.EXCH_DATA[_exch]["fees"]["spot"]
+                if self.get_exch_pair(exch, pair) in self.BINANCE_STABLES:
+                    return self.EXCH_DATA[exch]["fees"]["stables"]
+            return self.EXCH_DATA[exch]["fees"]["spot"]
 
-        return self.EXCH_DATA[_exch]["fees"]
+        return self.EXCH_DATA[exch]["fees"]
 
     def comboFees(self, exch_pair: list[tuple[str, str]]) -> float:
         """Return combo fees for given exchanges."""

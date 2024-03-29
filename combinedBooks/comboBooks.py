@@ -527,8 +527,8 @@ def get_taker_book(
     ob.pair = final_pair
     if exch in ob.xc.EXCHANGES + [f"{i}_jnd" for i in ob.xc.EXCHANGES]:
         # add fees
-        ob.asks = ob.asksAfterFees()
-        ob.bids = ob.bidsAfterFees()
+        ob.asks = ob.asksAfterFees(inverse=inverse)
+        ob.bids = ob.bidsAfterFees(inverse=inverse)
     if aggLevels:
         ob.aggregateLevels(debug)
     return ob

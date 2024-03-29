@@ -110,7 +110,6 @@ class ExchangesConstants:
             pair = "-".join(pair.split("-")[::-1])
         if "_joined" in exch:
             exch = exch.split("_")[0]
-        print(f"exch: {exch}, pair: {pair}, is inverse: {inverse}")
         if exch == "coinbase":
             if pair:
                 # check if pair in Coinbase `stables`.

@@ -109,8 +109,10 @@ class OrderBookEntry(BaseOrderBookEntry):
             _debug = [self._newDebugEntry(pair, side, xc, True)]
         else:
             _debug = self.debug
-        price = round(1 / self.price, deciP)
-        size = round(self.size * self.price, deciS)
+        price = 1 / self.price
+        price = round(price, round_digits(deciP, 0, price))
+        size = self.size * self.price
+        size = round(size, round_digits(deciS, 0, size))
         return type(self)(price, size, self.exch, _debug)
 
     def to_dict(self):

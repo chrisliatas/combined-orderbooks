@@ -254,7 +254,8 @@ class OrderBookItem:
         _sign = -1 if side == "bids" else 1
         for i in getattr(self, side):
             new_fee = self.xc.exchFees(i.exch, self.pair, inverse) + add_fee
-            prc = round(i.price * (1 + _sign * new_fee), self.lenPrcDecimals)
+            prc = i.price * (1 + _sign * new_fee)
+            prc = round(prc, round_digits(self.lenPrcDecimals, 0, prc))
             _debug = i.debug
             if add_fee:
                 _debug = i.debug.copy()

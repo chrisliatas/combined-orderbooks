@@ -96,9 +96,9 @@ def get_exch_book(
     if fallback and exch.endswith("_jnd"):
         # try to find pair in original exchange
         _exc = exch.split("_")[0]
-        print(f"get_exch_book - Falling back to {_exc} to get {pair}")
+        lgr.debug(f"get_exch_book - Falling back to {_exc} to get {pair}")
         return get_exch_book(_exc, pair, obs, as_copy)
-    print(f"get_exch_book - Could not find {pair} for {exch}")
+    lgr.warning(f"get_exch_book - Could not find {pair} for {exch}")
     return None
 
 
@@ -180,7 +180,7 @@ def multiple_join_exch_obs(
         join = f"{exch}_jnd"
         obs[join] = [i.copy_self() for i in obs[exch] if i.pair in pairs_required]
         if not obs[join]:
-            print(f"multiple_join_exch_obs - No pairs to join for {exch}")
+            lgr.warning(f"multiple_join_exch_obs - No pairs to join for {exch}")
             continue
         for joined_pair, (inp1, inp2) in toJoin.items():
             if new_book := join_exch_obs(join, inp1, inp2, joined_pair, obs, add_fees):
@@ -201,7 +201,7 @@ def multiple_join_exch_obs(
                     if ob2 := get_exch_book(join, inp2, obs, as_copy=False):
                         obs[join].remove(ob2)
             else:
-                print(
+                lgr.warning(
                     f"multiple_join_exch_obs - Could not merge {inp1} and {inp2} "
                     f"for {exch}"
                 )
@@ -463,7 +463,7 @@ def combo_by_conversion(
         known_pairs = get_exch_obs_pairs(exch, obs)
     _ob = obs[next(iter(obs))][0]
     comp_pairs = find_pairs(pair, known_pairs, _ob.xc.VALID_QUOTES)
-    print(f"combo_by_conversion - comp_pairs: {comp_pairs}")
+    lgr.debug(f"combo_by_conversion - comp_pairs: {comp_pairs}")
     books: list[OrderBookItem] = []
     for p1, p2 in comp_pairs:
         asks: list[OrderBookEntry] = []
@@ -473,7 +473,7 @@ def combo_by_conversion(
         if not ob1 or not ob2:
             continue
         if case := case_select(pair, p1, p2):
-            print(f"combo_by_conversion - Using case `{case.name}`")
+            lgr.debug(f"combo_by_conversion - Using case `{case.name}`")
             if case.name == "common_quote":
                 asks = convert_side_quote(ob1, ob2, *case.asks, debug)
                 bids = convert_side_quote(ob1, ob2, *case.bids, debug)
@@ -488,7 +488,7 @@ def combo_by_conversion(
                 asks = convert_side_base(ob1, ob2, *case.asks, debug)
                 bids = convert_side_base(ob1, ob2, *case.bids, debug)
         else:
-            print(f"combo_by_conversion - No case for {p1} and {p2}")
+            lgr.debug(f"combo_by_conversion - No case for {p1} and {p2}")
         if asks and bids:
             new_bk = OrderBookItem(exch, pair, ob1.ts, bids, asks, ob1.xc)
             if aggLevels:
@@ -559,14 +559,14 @@ def combo_book(
     known_pairs = get_exch_obs_pairs(exch, obs)
     if _pair in known_pairs:
         # get known pair
-        print(f"combo_book - Using known pair: {_pair}")
+        lgr.debug(f"combo_book - Using known pair: {_pair}")
         if ob := get_taker_book(
             pair, _pair, exch, obs, debug=debug, aggLevels=aggLevels
         ):
             books = [ob]
     elif inv_pair in known_pairs:
         # get known pair and inverse it
-        print(f"combo_book - Using inverse pair: {inv_pair}")
+        lgr.debug(f"combo_book - Using inverse pair: {inv_pair}")
         if ob := get_taker_book(
             pair,
             inv_pair,
@@ -578,7 +578,7 @@ def combo_book(
         ):
             books = [ob]
     else:
-        print(f"combo_book - Synthesizing pair: {pair}")
+        lgr.debug(f"combo_book - Synthesizing pair: {pair}")
         books = combo_by_conversion(pair, exch, obs, known_pairs, debug, aggLevels)
     return books
 
@@ -593,7 +593,7 @@ def pairs_sanity_check(
         if (diff := set(exch_pairs[exch1]) - set(exch_pairs[exch2])) or (
             diff2 := set(exch_pairs[exch2]) - set(exch_pairs[exch1])
         ):
-            print(
+            lgr.warning(
                 f"pairs_sanity_check - Pairs mismatch for {exch1} and {exch2}: "
                 f"{diff} {diff2}"
             )

@@ -17,8 +17,11 @@ Tools for combined order books research in crypto space. Utils functions.
 """
 
 import json
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
+
+lgr = logging.getLogger(__name__)
 
 
 def nowUTCts() -> float:
@@ -38,16 +41,16 @@ def saveEveryNth(results: list, data_dir: str, filename: str, nRes: int) -> bool
                     res = json.load(infile)
                     res += results
             except json.decoder.JSONDecodeError as der:
-                print(f"Decoder error {der}")
+                lgr.error(f"Decoder error {der}")
                 res = results
             with open(filepath, "w") as outfile:
                 json.dump(res, outfile)
-            print(f"Saved {len(res)} results")
+            lgr.debug(f"Saved {len(res)} results")
             saved = True
         else:
             with open(filepath, "w") as outfile:
                 json.dump(results, outfile)
-            print(f"Saved {n_res} results")
+            lgr.debug(f"Saved {n_res} results")
             saved = True
     return saved
 

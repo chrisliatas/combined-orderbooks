@@ -27,7 +27,11 @@ https://www.kraken.com/features/fee-schedule
 
 """
 
+import logging
+
 from combinedBooks.coinbaseUtils import CbProducts
+
+lgr = logging.getLogger(__name__)
 
 
 class ExchangesConstants:
@@ -64,7 +68,7 @@ class ExchangesConstants:
             ]
         else:
             self.EXCHANGES = self.avail_exchanges
-        print(f"{self.__class__.__name__} - Using exchanges: {self.EXCHANGES}")
+        lgr.info(f"{self.__class__.__name__} - Using exchanges: {self.EXCHANGES}")
         self.base_pairs = base_pairs
         if self.base_pairs:
             self.BASE_PAIRS = self.base_pairs

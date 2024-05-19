@@ -49,10 +49,16 @@ class ExchangesAsyncBooksGetter:
         depth: int = 50,
         use_exchs: list[str] | None = None,
         base_pairs: list[str] | None = None,
+        book_retries: int = 3,
+        book_timeout: int | None = None,
+        init_backoff: float = 1.0,
     ) -> None:
         self.depth = depth
         self.use_exchs = use_exchs
         self.base_pairs = base_pairs
+        self.book_retries = book_retries
+        self.book_timeout = book_timeout
+        self.init_backoff = init_backoff
         self.xc = ExchangesConstants(data_dir, self.use_exchs, self.base_pairs)
         self.exchs = self.xc.EXCH_DATA
         self.responses: dict[str, list[dict[str, dict]]] = {i: [] for i in self.exchs}
@@ -68,11 +74,27 @@ class ExchangesAsyncBooksGetter:
         exch: str,
         pair: str,
     ) -> None:
-        try:
-            async with session.get(url) as response:
-                resp = await response.json()
-        except Exception as ex:
-            lgr.error(f"{self.cls_name}.get_single_pair - Exception: {ex}")
+        for attempt in range(self.book_retries):
+            try:
+                async with session.get(url, timeout=self.book_timeout) as response:
+                    resp = await response.json()
+                    break
+            except asyncio.TimeoutError:
+                lgr.warning(
+                    f"{self.cls_name}.get_single_pair - Timeout, retrying "
+                    f"{attempt + 1}/{self.book_retries} for {pair} on {exch}"
+                )
+            except Exception as ex:
+                lgr.error(f"{self.cls_name}.get_single_pair - Exception: {ex}")
+                resp = {}
+                break
+            # add an exponential backoff for each retry
+            await asyncio.sleep(self.init_backoff * (2**attempt))
+        else:
+            lgr.error(
+                f"{self.cls_name}.get_single_pair - Failed to get {pair} on {exch} "
+                f"after {self.book_retries} retries."
+            )
             resp = {}
         res = {"pair": pair, "data": resp}
         self.responses[exch].append(res)

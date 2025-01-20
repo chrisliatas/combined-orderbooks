@@ -437,6 +437,17 @@ class OrderBookItem:
         self.bids = self.aggregateSideLevels("bids", debug)
         self.asks = self.aggregateSideLevels("asks", debug)
 
+    def sideLiquidityToLevel(self, side: str, level: float | None = None) -> float:
+        """
+        Return liquidity up to given level. If level is None, return total liquidity.
+        Return 0.0 if level is out of bounds.
+        """
+        if level is None:
+            return getattr(self, f"{side}TotSize")
+        if level <= 0 or level > getattr(self, f"{side}Len"):
+            return 0.0
+        return sum(i.size for i in getattr(self, side)[: int(level)])
+
     def inverseBook(self, debug=False) -> Self:
         """Return inverse order-book."""
         pair = "-".join(self.pair.split("-")[::-1])

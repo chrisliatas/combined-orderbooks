@@ -22,6 +22,8 @@ from datetime import datetime, timezone
 from functools import cached_property
 from typing import Self
 
+import numpy as np
+
 from combinedBooks.exchangesData import ExchangesConstants
 from combinedBooks.printColors import Pcolors as ppc
 from combinedBooks.utils import nowUTCts, round_digits
@@ -476,6 +478,80 @@ class OrderBookItem:
         bids.sort(key=lambda x: x.price, reverse=True)
         asks.sort(key=lambda x: x.price)
         return type(self)(self.exch, pair, self.ts, bids, asks, self.xc)
+
+    def imbalance(self, top_n: int = 5) -> float:
+        """Return imbalance (OBI) of top N levels."""
+        top_bids = sum(i.size for i in self.bids[:top_n])
+        top_asks = sum(i.size for i in self.asks[:top_n])
+        obi_num = top_bids - top_asks
+        obi_den = top_bids + top_asks
+        if obi_den == 0:
+            return 0.0  # neutral imbalance
+        return obi_num / obi_den
+
+    def weightedImbalance(
+        self, top_n: int = 5, weights: list[float] | None = None
+    ) -> float:
+        """Return weighted imbalance (OBI) of top N levels. Weights assign significantly
+          higher importance to the top order-book levels, which are most relevant for
+          short-term price movements.
+        Weighted OBI will be between -1 (strong selling) and +1 (strong buying).
+        """
+        if weights is None:
+            weights = list(np.exp(-np.arange(top_n)))
+        top_bids = sum(i.size * w for i, w in zip(self.bids[:top_n], weights))
+        top_asks = sum(i.size * w for i, w in zip(self.asks[:top_n], weights))
+        obi_num = top_bids - top_asks
+        obi_den = top_bids + top_asks
+        if obi_den == 0:
+            return 0.0  # neutral imbalance
+        return obi_num / obi_den
+
+    def orderFlowImbalance(
+        self, prev_bids: OBEntryList, prev_asks: OBEntryList, top_n: int = 5
+    ) -> float:
+        """Calculate the Order Flow Imbalance (OFI) between two snapshots
+            of the *top N* levels of the order book.
+            Ref: https://osquant.com/papers/key-insights-limit-order-book/
+        Calculates OFI based on three cases of top-N levels price changes
+        (increase, no change, or decrease)
+        Returns: The total OFI for the top N bid and ask levels.
+        """
+
+        def get_price_size(prices: OBEntryList, idx: int) -> tuple[float, float]:
+            prc = prices[idx].price if idx < len(prices) else 0.0
+            size = prices[idx].size if idx < len(prices) else 0.0
+            return prc, size
+
+        total_delta_bid = 0.0
+        total_delta_ask = 0.0
+        # Compute total bid-side ΔV
+        for i in range(top_n):
+            prev_prc, prev_size = get_price_size(prev_bids, i)
+            curr_prc, curr_size = get_price_size(self.bids, i)
+            if curr_prc > prev_prc:
+                delta_v_bid = curr_size
+            elif curr_prc == prev_prc:
+                delta_v_bid = curr_size - prev_size
+            else:  # curr_price < prev_price
+                delta_v_bid = -prev_size
+
+            total_delta_bid += delta_v_bid
+        # Compute total ask-side ΔV
+        for i in range(top_n):
+            prev_prc, prev_size = get_price_size(prev_asks, i)
+            curr_prc, curr_size = get_price_size(self.asks, i)
+            if curr_prc > prev_prc:
+                delta_v_ask = -prev_size
+            elif curr_prc == prev_prc:
+                delta_v_ask = curr_size - prev_size
+            else:  # curr_price < prev_price
+                delta_v_ask = curr_size
+
+            total_delta_ask += delta_v_ask
+
+        # OFI = sum of ΔV(bid) - sum of ΔV(ask)
+        return total_delta_bid - total_delta_ask
 
     def __repr__(self):
         return (
